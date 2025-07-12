@@ -1,0 +1,58 @@
+// src/data/mockdoctors.ts
+
+export const mockDoctors = [
+  {
+    name: 'Dr. Asha Mehta',
+    phone: '9876543210',
+    photo: 'https://images.unsplash.com/photo-1612531385446-f7e6d131e1d0?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fGRvY3RvciUyMHByb2ZpbGUlMjBpY29ufGVufDB8fDB8fHww',
+    expertise: ['Dermatologist'],
+    sessionMode: 'Online',
+    gender: 'Male',
+    fee: 1000,
+  },
+  {
+    name: 'Dr. Ramesh Verma',
+    phone: '9123456789',
+   photo: 'https://plus.unsplash.com/premium_photo-1661578535048-7a30e3a71d25?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGRvY3RvciUyMHByb2ZpbGUlMjBpY29ufGVufDB8fDB8fHww',
+    expertise: ['Anaesthesiologist'],
+    sessionMode: 'Offline',
+    gender: 'Male',
+    fee: 700,
+  },
+  {
+    name: 'Dr. Neha Kapoor',
+    phone: '9090909090',
+  photo: 'https://plus.unsplash.com/premium_photo-1664475543697-229156438e1e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjF8fGRvY3RvciUyMHByb2ZpbGUlMjBpY29ufGVufDB8fDB8fHww',
+    expertise: ['Endocrinologist'],
+    sessionMode: 'Online',
+    gender: 'Female',
+    fee: 500,
+  },
+   {
+    name: 'Dr. Rajesh Kumar',
+    phone: '9040610090',
+  photo: 'https://images.unsplash.com/photo-1582895361887-24daa40c8667?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NTJ8fGRvY3RvciUyMHByb2ZpbGUlMjBpY29ufGVufDB8fDB8fHww',
+    expertise: ['Endocrinologist'],
+    sessionMode: 'Online',
+    gender: 'Male',
+    fee: 500,
+  },
+  {
+    name: 'Dr. Priya Singh',
+    phone: '9080706050',
+    photo: 'https://images.unsplash.com/photo-1673865641073-4479f93a7776?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTIzfHxkb2N0b3IlMjBwcm9maWxlJTIwaWNvbnxlbnwwfHwwfHx8MA%3D%3D',
+    expertise: ['Cardiologist'],
+    sessionMode: 'Offline',
+    gender: 'Female',
+    fee: 1200,
+  },
+  {
+    name: 'Dr. Sanjay Gupta',
+    phone: '9012345678',
+     photo: 'https://plus.unsplash.com/premium_photo-1682141125356-9ebba1fa94ea?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTI1fHxkb2N0b3IlMjBwcm9maWxlJTIwaWNvbnxlbnwwfHwwfHx8MA%3D%3D', 
+    expertise: ['Neurologist'], 
+    sessionMode:    'Online', 
+    gender: 'Male', 
+    fee: 1500, 
+  },  
+    ];
