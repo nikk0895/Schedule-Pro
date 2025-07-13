@@ -9,7 +9,6 @@ import {
   AccordionDetails,
   Fab,
   Card,
-  CardContent,
   Paper,
 } from '@mui/material';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -41,7 +40,15 @@ export default function Dashboard() {
   const greeting = getGreetingMessage();
 
   const [patient, setPatient] = useState<any>(null);
-  const [sessions, setSessions] = useState<any[]>([]);
+  type Session = {
+  sessionType: string;
+  doctorName: string;
+  sessionDate: string;
+  slot: string;
+  mode: string;
+  status: string;
+};
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSessions = async (uid: string) => {

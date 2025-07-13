@@ -27,7 +27,7 @@ export default function RegisterForm() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleRegister = async () => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     setErrors({});
     const lowerEmail = email.toLowerCase();
 

@@ -23,7 +23,7 @@ export default function LoginForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loginFailed, setLoginFailed] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>)  => {
     setErrors({});
     setLoginFailed(false);
 
@@ -50,7 +50,7 @@ export default function LoginForm() {
       const snapshot = await getDoc(docRef);
 
       if (snapshot.exists()) {
-        const patientData = snapshot.data();
+        //const patientData = snapshot.data();
         enqueueSnackbar('Login successful!', { variant: 'success' });
         router.push({
           pathname: '/dashboard',

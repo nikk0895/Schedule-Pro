@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Container, Typography, Avatar, Paper, Divider, RadioGroup,
+  Box, Container, Typography, Avatar, Paper,RadioGroup,
   FormControlLabel, Radio, Button, Select, MenuItem, InputLabel,
   FormControl, TextField, Dialog, DialogTitle, DialogContent,
   DialogActions, Grid, Chip
@@ -15,11 +15,13 @@ import Fab from '@mui/material/Fab';
 import { auth, db } from '@/utils/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { collection, addDoc } from "firebase/firestore";
+//import { collection, addDoc } from "firebase/firestore";
 
 export default function ScheduleDoctorPage() {
   const router = useRouter();
-  const [patient, setPatient] = useState<any>(null);
+  //const [patient, setPatient] = useState<any>(null);
+type Patient = { uid: string; name: string };
+const [patient, setPatient] = useState<Patient | null>(null);
   const [doctor, setDoctor] = useState<any>(null);
   const [sessionType, setSessionType] = useState('Counselling');
   const [sessionDate, setSessionDate] = useState<Dayjs | null>(dayjs());
