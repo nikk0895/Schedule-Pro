@@ -1,4 +1,5 @@
-// src/components/LoginForm.tsx
+// ✅ Updated LoginForm.tsx using Firebase Auth + Firestore
+
 import { useState } from 'react';
 import {
   TextField,
@@ -42,19 +43,19 @@ export default function LoginForm() {
     }
 
     try {
-      // ✅ Firebase login
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCred.user.uid;
 
-      // ✅ Get full patient data from Firestore using UID
       const docRef = doc(db, 'patients', uid);
       const snapshot = await getDoc(docRef);
 
       if (snapshot.exists()) {
         const patientData = snapshot.data();
-        localStorage.setItem('patientInfo', JSON.stringify(patientData));
         enqueueSnackbar('Login successful!', { variant: 'success' });
-        router.push('/dashboard');
+        router.push({
+          pathname: '/dashboard',
+          query: { uid },
+        });
       } else {
         enqueueSnackbar('Patient record not found. Please register again.', { variant: 'error' });
       }

@@ -1,3 +1,4 @@
+import '@/styles/globals.css';
 import { SnackbarProvider } from 'notistack';
 
 function MyApp({ Component, pageProps }) {

@@ -27,68 +27,58 @@ export default function RegisterForm() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-const handleRegister = async () => {
-  setErrors({});
+  const handleRegister = async () => {
+    setErrors({});
+    const lowerEmail = email.toLowerCase();
 
-  const lowerEmail = email.toLowerCase();
-
-  const formData = {
-    name,
-    mobile,
-    whatsapp: sameAsMobile ? mobile : whatsapp,
-    email: lowerEmail,
-    address,
-    password,
-  };
-
-  const result = registerSchema.safeParse(formData);
-
-  if (!result.success) {
-    const formErrors: Record<string, string> = {};
-    result.error.issues.forEach((issue) => {
-      const field = issue.path[0];
-      if (typeof field === 'string') {
-        formErrors[field] = issue.message;
-      }
-    });
-    setErrors(formErrors);
-    enqueueSnackbar('Please fix the errors above', { variant: 'error' });
-    return;
-  }
-
-  try {
-    // ✅ Step 1: Register user with Firebase Auth
-    const userCred = await createUserWithEmailAndPassword(auth, lowerEmail, password);
-    const uid = userCred.user.uid;
-
-    // ✅ Step 2: Save patient data to Firestore using UID as document ID
-    const patientRef = doc(db, 'patients', uid);
-    await setDoc(patientRef, {
-      uid,
+    const formData = {
       name,
       mobile,
       whatsapp: sameAsMobile ? mobile : whatsapp,
       email: lowerEmail,
       address,
-    });
+      password,
+    };
 
-    // ✅ Step 3: Clear form fields
-    setName('');
-    setMobile('');
-    setWhatsapp('');
-    setSameAsMobile(true);
-    setEmail('');
-    setAddress('');
-    setPassword('');
-    setErrors({});
+    const result = registerSchema.safeParse(formData);
 
-    enqueueSnackbar('Registration successful! Please login now.', { variant: 'success' });
-    router.push('/');
-  } catch (err: any) {
-    enqueueSnackbar(err.message || 'Registration failed', { variant: 'error' });
-  }
-};
+    if (!result.success) {
+      const formErrors: Record<string, string> = {};
+      result.error.issues.forEach((issue) => {
+        const field = issue.path[0];
+        if (typeof field === 'string') {
+          formErrors[field] = issue.message;
+        }
+      });
+      setErrors(formErrors);
+      enqueueSnackbar('Please fix the errors above', { variant: 'error' });
+      return;
+    }
 
+    try {
+      // ✅ Step 1: Register user with Firebase Auth
+      const userCred = await createUserWithEmailAndPassword(auth, lowerEmail, password);
+      const uid = userCred.user.uid;
+
+      // ✅ Step 2: Save patient data to Firestore using UID as document ID
+      const patientRef = doc(db, 'patients', uid);
+      await setDoc(patientRef, {
+        uid,
+        name,
+        mobile,
+        whatsapp: sameAsMobile ? mobile : whatsapp,
+        email: lowerEmail,
+        address,
+        createdAt: new Date().toISOString(),
+      });
+
+      // ✅ Step 3: Redirect to dashboard or login
+      enqueueSnackbar('Registration successful! Redirecting to dashboard...', { variant: 'success' });
+      router.push('/dashboard');
+    } catch (err: any) {
+      enqueueSnackbar(err.message || 'Registration failed', { variant: 'error' });
+    }
+  };
 
   return (
     <>
