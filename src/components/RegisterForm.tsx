@@ -1,46 +1,33 @@
-// src/components/RegisterForm.tsx
 import { useState } from 'react';
 import {
   TextField,
   FormControl,
-  FormControlLabel,
-  Checkbox,
   Button,
+  Typography,
 } from '@mui/material';
 import { useRouter } from 'next/router';
 import { useSnackbar } from 'notistack';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/utils/firebase';
 import { registerSchema } from '@/types/formSchemas';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function RegisterForm() {
   const router = useRouter();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [name, setName] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [sameAsMobile, setSameAsMobile] = useState(true);
   const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [registerFailed, setRegisterFailed] = useState(false);
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // ✅ prevent page reload
     setErrors({});
-    const lowerEmail = email.toLowerCase();
+    setRegisterFailed(false);
 
-    const formData = {
-      name,
-      mobile,
-      whatsapp: sameAsMobile ? mobile : whatsapp,
-      email: lowerEmail,
-      address,
-      password,
-    };
-
-    const result = registerSchema.safeParse(formData);
+    const result = registerSchema.safeParse({ name, email, password });
 
     if (!result.success) {
       const formErrors: Record<string, string> = {};
@@ -56,75 +43,35 @@ export default function RegisterForm() {
     }
 
     try {
-      // ✅ Step 1: Register user with Firebase Auth
-      const userCred = await createUserWithEmailAndPassword(auth, lowerEmail, password);
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCred.user.uid;
 
-      // ✅ Step 2: Save patient data to Firestore using UID as document ID
-      const patientRef = doc(db, 'patients', uid);
-      await setDoc(patientRef, {
-        uid,
+      await setDoc(doc(db, 'patients', uid), {
         name,
-        mobile,
-        whatsapp: sameAsMobile ? mobile : whatsapp,
-        email: lowerEmail,
-        address,
+        email,
+        uid,
         createdAt: new Date().toISOString(),
       });
 
-      // ✅ Step 3: Redirect to dashboard or login
-      enqueueSnackbar('Registration successful! Redirecting to dashboard...', { variant: 'success' });
+      enqueueSnackbar('Registration successful!', { variant: 'success' });
       router.push('/dashboard');
     } catch (err: any) {
+      setRegisterFailed(true);
       enqueueSnackbar(err.message || 'Registration failed', { variant: 'error' });
     }
   };
 
   return (
-    <>
+    <form onSubmit={handleRegister}>
       <FormControl fullWidth sx={{ mb: 2 }}>
         <TextField
-          label="Name"
+          label="Full Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           error={!!errors.name}
           helperText={errors.name}
         />
       </FormControl>
-
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <TextField
-          label="Mobile"
-          value={mobile}
-          onChange={(e) => setMobile(e.target.value)}
-          error={!!errors.mobile}
-          helperText={errors.mobile}
-        />
-      </FormControl>
-
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <TextField
-          label="WhatsApp"
-          value={sameAsMobile ? mobile : whatsapp}
-          onChange={(e) => setWhatsapp(e.target.value)}
-          disabled={sameAsMobile}
-          error={!!errors.whatsapp}
-          helperText={errors.whatsapp}
-        />
-      </FormControl>
-
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={sameAsMobile}
-            onChange={(e) => {
-              setSameAsMobile(e.target.checked);
-              if (e.target.checked) setWhatsapp(mobile);
-            }}
-          />
-        }
-        label="Same as Mobile"
-      />
 
       <FormControl fullWidth sx={{ mb: 2 }}>
         <TextField
@@ -147,21 +94,15 @@ export default function RegisterForm() {
         />
       </FormControl>
 
-      <FormControl fullWidth sx={{ mb: 2 }}>
-        <TextField
-          label="Address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          error={!!errors.address}
-          helperText={errors.address}
-          multiline
-          rows={3}
-        />
-      </FormControl>
+      {registerFailed && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          Registration failed. Try again.
+        </Typography>
+      )}
 
-      <Button variant="contained" fullWidth onClick={handleRegister}>
+      <Button variant="contained" fullWidth type="submit">
         Register
       </Button>
-    </>
+    </form>
   );
 }
