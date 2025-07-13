@@ -33,27 +33,29 @@ const [patient, setPatient] = useState<Patient | null>(null);
   const [tempSelectedSlot, setTempSelectedSlot] = useState('');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const uid = user.uid;
-        const docRef = doc(db, 'patients', uid);
-        const snapshot = await getDoc(docRef);
-        if (snapshot.exists()) {
-          setPatient({ uid, ...snapshot.data() });
-        }
-      } else {
-        router.push('/');
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const uid = user.uid;
+      const docRef = doc(db, 'patients', uid);
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const data = snapshot.data() as { name: string }; // ✅ add this line
+        setPatient({ uid, ...data }); // ✅ now this works
       }
+    } else {
+      router.push('/');
+    }
 
-      // Doctor: from localStorage
-      const doctorData = localStorage.getItem('selectedDoctor');
-      if (doctorData) {
-        setDoctor(JSON.parse(doctorData));
-      }
-    });
+    // Doctor: from localStorage
+    const doctorData = localStorage.getItem('selectedDoctor');
+    if (doctorData) {
+      setDoctor(JSON.parse(doctorData));
+    }
+  });
 
-    return () => unsubscribe();
-  }, [router]);
+  return () => unsubscribe();
+}, [router]);
+
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -229,9 +231,9 @@ const [patient, setPatient] = useState<Patient | null>(null);
             <DialogTitle>Select a Time Slot</DialogTitle>
             <DialogContent dividers>
               {[
-                { label: 'Morning', slots: ['8:00 AM', '9:00 AM', '10:00 AM'] },
-                { label: 'Afternoon', slots: ['12:00 PM', '1:00 PM', '2:00 PM'] },
-                { label: 'Evening', slots: ['4:00 PM', '5:00 PM', '6:00 PM'] },
+                { label: 'Morning', slots: ['8:00 AM', '9:00 AM', '10:00 AM','11:00 AM'] },
+                { label: 'Afternoon', slots: ['12:00 PM', '1:00 PM', '2:00 PM' ] },
+                { label: 'Evening', slots: ['4:00 PM', '5:00 PM', '6:00 PM','7:00 PM'] },
               ].map((group, idx) => (
                 <Box key={idx} mb={2}>
                   <Typography variant="subtitle1">{group.label}</Typography>

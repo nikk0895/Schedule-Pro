@@ -1,4 +1,4 @@
-// ✅ Updated LoginForm.tsx using Firebase Auth + Firestore
+// ✅ Fixed LoginForm.tsx with proper form structure
 
 import { useState } from 'react';
 import {
@@ -23,7 +23,8 @@ export default function LoginForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loginFailed, setLoginFailed] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>)  => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // ✅ Prevent default form submit
     setErrors({});
     setLoginFailed(false);
 
@@ -50,7 +51,6 @@ export default function LoginForm() {
       const snapshot = await getDoc(docRef);
 
       if (snapshot.exists()) {
-        //const patientData = snapshot.data();
         enqueueSnackbar('Login successful!', { variant: 'success' });
         router.push({
           pathname: '/dashboard',
@@ -66,7 +66,7 @@ export default function LoginForm() {
   };
 
   return (
-    <>
+    <form onSubmit={handleLogin}>
       <FormControl fullWidth sx={{ mb: 2 }}>
         <TextField
           label="Email"
@@ -94,9 +94,9 @@ export default function LoginForm() {
         </Typography>
       )}
 
-      <Button variant="contained" fullWidth onClick={handleLogin}>
+      <Button variant="contained" fullWidth type="submit">
         Login
       </Button>
-    </>
+    </form>
   );
 }
