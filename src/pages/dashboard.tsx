@@ -14,15 +14,10 @@ import {
 import PhoneIcon from '@mui/icons-material/Phone';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '@/utils/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import dayjs from 'dayjs';
-import advancedFormat from 'dayjs/plugin/advancedFormat'; // For "Do" like 15th
-dayjs.extend(advancedFormat);
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
-dayjs.extend(isSameOrAfter);
 import {
   collection,
   getDocs,
@@ -34,13 +29,14 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { getGreetingMessage } from '@/utils/greeting';
+import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 
-export default function Dashboard() {
-  const router = useRouter();
-  const greeting = getGreetingMessage();
+dayjs.extend(advancedFormat);
+dayjs.extend(isSameOrAfter);
 
-  const [patient, setPatient] = useState<any>(null);
- type Session = {
+type Session = {
   id: string;
   sessionType: string;
   doctorName: string;
@@ -51,74 +47,70 @@ export default function Dashboard() {
   mode: string;
   status: string;
   onlineLink?: string;
-  doctorPhoto?: string; // Optional because it's not in Firestore yet
+  doctorPhoto?: string;
 };
 
-
+export default function Dashboard() {
+  const router = useRouter();
+  const greeting = useMemo(() => getGreetingMessage(), []);
+  const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchSessions = async (uid: string) => {
-  try {
-    const q = query(
-      collection(db, 'sessions'),
-      where('patientUid', '==', uid),
-      orderBy('sessionDate', 'desc')
-    );
-    const snapshot = await getDocs(q);
-   const data: Session[] = snapshot.docs.map((doc) => {
-  const d = doc.data();
-  return {
-    id: doc.id,
-    sessionType: d.sessionType,
-    doctorName: d.doctorName,
-    doctorPhone: d.doctorPhone,
-    sessionDate: d.sessionDate,
-    slot: d.slot,
-    duration: d.duration,
-    mode: d.mode,
-    status: d.status,
-    onlineLink: d.onlineLink ?? '',
-    doctorPhoto: d.doctorPhoto ?? '', // Optional fallback
-  };
-});
-setSessions(data);
-  } catch (err) {
-    console.error('Error fetching sessions:', err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  const [isPastExpanded, setIsPastExpanded] = useState(false);
+  const today = dayjs();
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      const uid = user.uid;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const uid = user.uid;
+        try {
+          const patientRef = doc(db, 'patients', uid);
+          const [patientSnap, sessionsSnap] = await Promise.all([
+            getDoc(patientRef),
+            getDocs(
+              query(
+                collection(db, 'sessions'),
+                where('patientUid', '==', uid),
+                orderBy('sessionDate', 'desc')
+              )
+            ),
+          ]);
 
-      try {
-        const patientRef = doc(db, 'patients', uid);
-        const patientSnap = await getDoc(patientRef);
+          if (patientSnap.exists()) {
+            const patientData = patientSnap.data();
+            setPatient({ uid, ...patientData });
+          } else {
+            setPatient({ uid, name: 'Unknown' });
+          }
 
-        if (patientSnap.exists()) {
-          const patientData = patientSnap.data();
-          setPatient({ uid, ...patientData }); // ✅ Use Firestore name
-        } else {
-          setPatient({ uid, name: 'Unknown' }); // fallback
+          const data: Session[] = sessionsSnap.docs.map((doc) => {
+            const d = doc.data();
+            return {
+              id: doc.id,
+              sessionType: d.sessionType,
+              doctorName: d.doctorName,
+              doctorPhone: d.doctorPhone,
+              sessionDate: d.sessionDate,
+              slot: d.slot,
+              duration: d.duration,
+              mode: d.mode,
+              status: d.status,
+              onlineLink: d.onlineLink ?? '',
+              doctorPhoto: d.doctorPhoto ?? '',
+            };
+          });
+          setSessions(data);
+        } catch (error) {
+          console.error('Failed to fetch patient or sessions:', error);
+        } finally {
+          setLoading(false);
         }
-
-        fetchSessions(uid);
-      } catch (error) {
-        console.error('Failed to fetch patient:', error);
+      } else {
+        router.push('/');
       }
-    } else {
-      router.push('/');
-    }
-  });
-
-  return () => unsubscribe();
-}, [router]);
-
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -136,15 +128,31 @@ setSessions(data);
     }
   };
 
-  const today = dayjs();
-  const upcomingSessions = sessions.filter(
-    (s) =>
-      s.status === 'upcoming' &&
-      dayjs(s.sessionDate).isSameOrAfter(today, 'day')
+  const upcomingSessions = useMemo(
+    () =>
+      sessions.filter(
+        (s) =>
+          s.status === 'upcoming' &&
+          dayjs(s.sessionDate).isSameOrAfter(today, 'day')
+      ),
+    [sessions]
   );
-  const pastSessions = sessions
-    .filter((s) => s.status === 'completed' || dayjs(s.sessionDate).isBefore(today, 'day'))
-    .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+
+  const pastSessions = useMemo(
+    () =>
+      sessions
+        .filter(
+          (s) =>
+            s.status === 'completed' ||
+            dayjs(s.sessionDate).isBefore(today, 'day')
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.sessionDate).getTime() -
+            new Date(b.sessionDate).getTime()
+        ),
+    [sessions]
+  );
 
   return (
     <Box
@@ -155,7 +163,6 @@ setSessions(data);
       }}
     >
       <Box p={2}>
-        {/* Header */}
         <Box
           display="flex"
           justifyContent="space-between"
@@ -171,14 +178,13 @@ setSessions(data);
           <Typography variant="h6">{greeting},</Typography>
           <Box display="flex" alignItems="center" gap={1}>
             <Typography>{patient?.name}</Typography>
-            <Avatar alt={patient?.name} src="/avatar.png" />
+            <Avatar alt={patient?.name} src="/avatar.png" sx={{ width: 40, height: 40 }} />
             <Button variant="outlined" color="inherit" size="small" onClick={handleLogout}>
               Logout
             </Button>
           </Box>
         </Box>
 
-        {/* Always Visible "Schedule Now" Button */}
         <Box display="flex" justifyContent="flex-end" mb={2}>
           <Button
             variant="contained"
@@ -189,7 +195,6 @@ setSessions(data);
           </Button>
         </Box>
 
-        {/* Schedule Prompt for New Users */}
         {sessions.length === 0 && !loading && (
           <Paper sx={{ p: 3, mb: 4, textAlign: 'center', background: '#f5f5f5' }}>
             <Typography variant="h6" gutterBottom>
@@ -204,7 +209,6 @@ setSessions(data);
           </Paper>
         )}
 
-        {/* Sessions */}
         {loading ? (
           <Box textAlign="center" py={6}>
             <CircularProgress />
@@ -212,185 +216,153 @@ setSessions(data);
           </Box>
         ) : (
           <>
-            {/* Upcoming Sessions */}
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="h6">Upcoming Sessions</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 {upcomingSessions.length > 0 ? (
-  upcomingSessions.map((session) => (
-    <Card
-      key={session.id}
-      sx={{
-        mb: 3,
-        borderRadius: 3,
-        background: 'linear-gradient(to bottom right, #f5f2ff, #fbe7f2)',
-        boxShadow: 4,
-        p: 2,
-      }}
-    >
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        {/* Time and Location */}
-        <Box>
-          <Typography variant="h5" fontWeight={600}>
-            {session.slot}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {dayjs(session.sessionDate).format('dddd, MMMM D, YYYY')}
-          </Typography>
-        </Box>
+                  upcomingSessions.map((session) => (
+                    <Card
+                      key={session.id}
+                      sx={{
+                        mb: 3,
+                        borderRadius: 3,
+                        background: 'linear-gradient(to bottom right, #f5f2ff, #fbe7f2)',
+                        boxShadow: 4,
+                        p: 2,
+                      }}
+                    >
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Box>
+                          <Typography variant="h5" fontWeight={600}>
+                            {session.slot}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {dayjs(session.sessionDate).format('dddd, MMMM D, YYYY')}
+                          </Typography>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap={2}>
+                          <Avatar
+                            src={session.doctorPhoto}
+                            alt={session.doctorName}
+                            sx={{
+                              width: 90,
+                              height: 90,
+                              borderRadius: 20,
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                              border: '2px solid #fff',
+                            }}
+                          />
+                          <Box>
+                            <Typography variant="h6" fontWeight={600}>
+                              Dr. {session.doctorName}
+                            </Typography>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Avatar sx={{ bgcolor: '#e0e0e0', width: 24, height: 24 }}>📞</Avatar>
+                              <Typography variant="body2" color="text.secondary">
+                                {session.doctorPhone}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Box>
 
-        {/* Doctor Info */}
-        <Box display="flex" alignItems="center" gap={2}>
-         <Avatar
-  src={session.doctorPhoto}
-  alt={session.doctorName}
-  sx={{
-    width: 80,
-    height: 90,
-    borderRadius: 10,
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-    border: '2px solid #fff',
-  }}
-/>
-          <Box>
-            <Typography variant="h6" fontWeight={600}>
-              Dr. {session.doctorName}
-            </Typography>
-            <Box display="flex" alignItems="center" gap={1}>
-              <Avatar
-                sx={{
-                  bgcolor: '#e0e0e0',
-                  width: 24,
-                  height: 24,
-                }}
-              >
-                📞
-              </Avatar>
-              <Typography variant="body2" color="text.secondary">
-                {session.doctorPhone}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      </Box>
+                      <Box mt={2}>
+                        <Typography variant="body2">
+                          <strong>Session Duration:</strong> 01:00 HR
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Session Mode:</strong> {session.mode}
+                        </Typography>
+                        {session.mode === 'online' && session.onlineLink && (
+                          <Typography variant="body2" mt={1}>
+                            <strong>Link:</strong>{' '}
+                            <a
+                              href={session.onlineLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: '#5e35b1' }}
+                            >
+                              {session.onlineLink}
+                            </a>
+                          </Typography>
+                        )}
+                      </Box>
 
-      {/* Session Info */}
-      <Box mt={2}>
-        <Typography variant="body2">
-          <strong>Session Duration:</strong> 01:00 HR
-        </Typography>
-        <Typography variant="body2">
-          <strong>Session Mode:</strong> {session.mode}
-        </Typography>
-        {session.mode === 'online' && session.onlineLink && (
-          <Typography variant="body2" mt={1}>
-            <strong>Link:</strong>{' '}
-            <a
-              href={session.onlineLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#5e35b1' }}
-            >
-              {session.onlineLink}
-            </a>
-          </Typography>
-        )}
-      </Box>
-
-      {/* Action */}
-      <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-        <Button
-          variant="contained"
-          size="small"
-          sx={{
-            background: 'linear-gradient(to right, #f1707d, #b755ff)',
-            color: '#fff',
-            '&:hover': {
-              background: 'linear-gradient(to right, #e85c6d, #a04fe5)',
-            },
-          }}
-          onClick={() => markAsCompleted(session.id)}
-        >
-          Mark as Completed
-        </Button>
-
-        <Typography variant="body2" fontStyle="italic" color="text.secondary">
-          Previous Session: Tuesday, March 5, 2023
-        </Typography>
-      </Box>
-    </Card>
-  ))
-) : (
-  <Typography>No upcoming sessions.</Typography>
-)}
-
+                      <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
+                        <Button
+                          variant="contained"
+                          size="small"
+                          sx={{
+                            background: 'linear-gradient(to right, #f1707d, #b755ff)',
+                            color: '#fff',
+                            '&:hover': {
+                              background: 'linear-gradient(to right, #e85c6d, #a04fe5)',
+                            },
+                          }}
+                          onClick={() => markAsCompleted(session.id)}
+                        >
+                          Mark as Completed
+                        </Button>
+                        <Typography variant="body2" fontStyle="italic" color="text.secondary">
+                          Previous Session: Monday, July 14, 2025
+                        </Typography>
+                      </Box>
+                    </Card>
+                  ))
+                ) : (
+                  <Typography>No upcoming sessions.</Typography>
+                )}
               </AccordionDetails>
             </Accordion>
 
-           {/* Past Sessions */}
-<Accordion>
-  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-    <Typography variant="h6">Past Sessions</Typography>
-  </AccordionSummary>
-  <AccordionDetails>
-    {pastSessions.length > 0 ? (
-      pastSessions.map((session) => {
-        const formattedDate = dayjs(session.sessionDate).format('dddd, D MMMM YYYY');
-
-        return (
-          <Card
-            key={session.id}
-            sx={{
-              mb: 2,
-              p: 2,
-              borderRadius: 3,
-              background: 'linear-gradient(to bottom right, #fdfbfb, #ebedee)',
-              boxShadow: '0px 4px 12px rgba(0,0,0,0.1)',
-            }}
-          >
-            <Box display="flex" alignItems="center" gap={2}>
-              {/* <Avatar
-                // src={session.doctorPhoto}
-                // alt={session.doctorName}
-                sx={{
-                  width: 70,
-                  height: 90,
-                  borderRadius: 2,
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                  border: '2px solid #fff',
-                }}
-              /> */}
-              <Box flex={1}>
-                <Typography variant="h5" fontWeight="bold">
-                  {session.slot}
-                </Typography>
-                <Typography variant="h6" fontWeight="bold" display="flex" alignItems="center" gap={1}>
-                  {session.doctorName}
-                  <PhoneIcon fontSize="small" color="primary" />
-                </Typography>
-                <Typography variant="body2" color="text.secondary" mt={0.5}>
-                  Previous Session: {formattedDate}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Session Mode: {session.mode}
-                </Typography>
-              </Box>
-            </Box>
-          </Card>
-        );
-      })
-    ) : (
-      <Typography>No past sessions.</Typography>
-    )}
-  </AccordionDetails>
-</Accordion>
+            <Accordion expanded={isPastExpanded} onChange={(_, expanded) => setIsPastExpanded(expanded)}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="h6">Past Sessions</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                {isPastExpanded &&
+                  (pastSessions.length > 0 ? (
+                    pastSessions.map((session) => (
+                      <Card
+                        key={session.id}
+                        sx={{
+                          mb: 2,
+                          p: 2,
+                          borderRadius: 3,
+                          background: 'linear-gradient(to bottom right, #fdfbfb, #ebedee)',
+                          boxShadow: '0px 4px 12px rgba(0,0,0,0.1)',
+                        }}
+                      >
+                        <Box display="flex" alignItems="center" gap={2}>
+                          <Box flex={1}>
+                            <Typography variant="h5" fontWeight="bold">
+                              {session.slot}
+                            </Typography>
+                            <Typography variant="h6" fontWeight="bold" display="flex" alignItems="center" gap={1}>
+                              {session.doctorName}
+                              <PhoneIcon fontSize="small" color="primary" />
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" mt={0.5}>
+                              Previous Session: {dayjs(session.sessionDate).format('dddd, D MMMM YYYY')}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Session Mode: {session.mode}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Card>
+                    ))
+                  ) : (
+                    <Typography>No past sessions.</Typography>
+                  ))}
+              </AccordionDetails>
+            </Accordion>
           </>
         )}
       </Box>
 
-      {/* Floating FAB */}
       <Fab
         color="primary"
         sx={{
