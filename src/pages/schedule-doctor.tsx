@@ -3,8 +3,9 @@ import {
   Box, Container, Typography, Avatar, Paper,RadioGroup,
   FormControlLabel, Radio, Button, Select, MenuItem, InputLabel,
   FormControl, TextField, Dialog, DialogTitle, DialogContent,
-  DialogActions, Grid, Chip
+  DialogActions,Chip
 } from '@mui/material';
+// import Grid from '@mui/material/Unstable_Grid2';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -237,21 +238,22 @@ const [patient, setPatient] = useState<Patient | null>(null);
               ].map((group, idx) => (
                 <Box key={idx} mb={2}>
                   <Typography variant="subtitle1">{group.label}</Typography>
-                  <Grid container spacing={1}>
-                    {group.slots.map((time) => (
-                      <Grid item key={time}>
-                        <Chip
-                          label={time}
-                          clickable
-                          sx={{
-                            backgroundColor: tempSelectedSlot === time ? '#EDA197' : '#f0f0f0',
-                            color: tempSelectedSlot === time ? '#fff' : 'black',
-                          }}
-                          onClick={() => setTempSelectedSlot(time)}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
+                  
+<Box display="flex" flexWrap="wrap" gap={1}>
+  {group.slots.map((time: string) => (
+    <Chip
+      key={time}
+      label={time}
+      clickable
+      sx={{
+        backgroundColor: tempSelectedSlot === time ? '#EDA197' : '#f0f0f0',
+        color: tempSelectedSlot === time ? '#fff' : 'black',
+      }}
+      onClick={() => setTempSelectedSlot(time)}
+    />
+  ))}
+</Box>
+
                 </Box>
               ))}
             </DialogContent>
