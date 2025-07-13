@@ -13,8 +13,12 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/utils/firebase';
 import { registerSchema } from '@/types/formSchemas';
+type RegisterFormProps = {
+  onRegistered: () => void;
+};
 
-export default function RegisterForm() {
+
+export default function RegisterForm({ onRegistered }: RegisterFormProps) {
   const router = useRouter();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -73,6 +77,7 @@ export default function RegisterForm() {
 
       enqueueSnackbar('Registration successful! Redirecting to dashboard...', { variant: 'success' });
       router.push('/dashboard');
+       onRegistered();
     } catch (err: any) {
       enqueueSnackbar(err.message || 'Registration failed', { variant: 'error' });
     }
