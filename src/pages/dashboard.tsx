@@ -40,7 +40,8 @@ export default function Dashboard() {
   const greeting = getGreetingMessage();
 
   const [patient, setPatient] = useState<any>(null);
-  type Session = {
+ type Session = {
+  id: string;
   sessionType: string;
   doctorName: string;
   sessionDate: string;
@@ -48,25 +49,38 @@ export default function Dashboard() {
   mode: string;
   status: string;
 };
+
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSessions = async (uid: string) => {
-    try {
-      const q = query(
-        collection(db, 'sessions'),
-        where('patientUid', '==', uid),
-        orderBy('sessionDate', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setSessions(data);
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const q = query(
+      collection(db, 'sessions'),
+      where('patientUid', '==', uid),
+      orderBy('sessionDate', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    const data: Session[] = snapshot.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        sessionType: d.sessionType,
+        doctorName: d.doctorName,
+        sessionDate: d.sessionDate,
+        slot: d.slot,
+        mode: d.mode,
+        status: d.status,
+      };
+    });
+    setSessions(data);
+  } catch (err) {
+    console.error('Error fetching sessions:', err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
