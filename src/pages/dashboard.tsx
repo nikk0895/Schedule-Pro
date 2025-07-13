@@ -44,11 +44,16 @@ export default function Dashboard() {
   id: string;
   sessionType: string;
   doctorName: string;
+  doctorPhone: string;
   sessionDate: string;
   slot: string;
+  duration?: number;
   mode: string;
   status: string;
+  onlineLink?: string;
+  doctorPhoto?: string; // Optional because it's not in Firestore yet
 };
+
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,19 +66,23 @@ export default function Dashboard() {
       orderBy('sessionDate', 'desc')
     );
     const snapshot = await getDocs(q);
-    const data: Session[] = snapshot.docs.map((doc) => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        sessionType: d.sessionType,
-        doctorName: d.doctorName,
-        sessionDate: d.sessionDate,
-        slot: d.slot,
-        mode: d.mode,
-        status: d.status,
-      };
-    });
-    setSessions(data);
+   const data: Session[] = snapshot.docs.map((doc) => {
+  const d = doc.data();
+  return {
+    id: doc.id,
+    sessionType: d.sessionType,
+    doctorName: d.doctorName,
+    doctorPhone: d.doctorPhone,
+    sessionDate: d.sessionDate,
+    slot: d.slot,
+    duration: d.duration,
+    mode: d.mode,
+    status: d.status,
+    onlineLink: d.onlineLink ?? '',
+    doctorPhoto: d.doctorPhoto ?? '', // Optional fallback
+  };
+});
+setSessions(data);
   } catch (err) {
     console.error('Error fetching sessions:', err);
   } finally {
@@ -235,7 +244,7 @@ export default function Dashboard() {
         {/* Doctor Info */}
         <Box display="flex" alignItems="center" gap={2}>
          <Avatar
-  src={session.doctorPhoto || '/avatar.png'}
+  src={session.doctorPhoto}
   alt={session.doctorName}
   sx={{
     width: 80,
