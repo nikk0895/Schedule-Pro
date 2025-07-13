@@ -1,14 +1,11 @@
-// src/pages/_app.tsx
-import '@/styles/globals.css';
-import { SnackbarProvider } from 'notistack';
-import type { AppProps } from 'next/app';
+import { AppProps } from 'next/app';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
-function MyApp({ Component, pageProps }: AppProps) {
+export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <SnackbarProvider maxSnack={3}>
+    <>
       <Component {...pageProps} />
-    </SnackbarProvider>
+      <SpeedInsights /> {/* ✅ Add here */}
+    </>
   );
 }
-
-export default MyApp;
