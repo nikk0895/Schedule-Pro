@@ -56,19 +56,7 @@ export default function Home() {
         </Typography>
       </Paper>
 
-      <Fab
-        color="primary"
-        sx={{
-          position: 'fixed',
-          bottom: 32,
-          right: 32,
-          background: 'linear-gradient(to bottom right, #B0A4F5, #EDA197)',
-          color: '#fff',
-        }}
-        aria-label="add"
-      >
-        <AddIcon />
-      </Fab>
+      
     </Box>
   );
 }

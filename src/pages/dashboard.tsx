@@ -363,20 +363,7 @@ export default function Dashboard() {
         )}
       </Box>
 
-      <Fab
-        color="primary"
-        sx={{
-          position: 'fixed',
-          bottom: 32,
-          right: 32,
-          background: 'linear-gradient(to bottom right, #B0A4F5, #EDA197)',
-          color: '#fff',
-        }}
-        aria-label="add"
-        onClick={() => router.push('/available-doctor')}
-      >
-        <AddIcon />
-      </Fab>
+     
     </Box>
   );
 }
