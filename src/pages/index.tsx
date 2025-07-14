@@ -1,16 +1,14 @@
-// pages/index.tsx
 import { useState } from 'react';
 import {
   Box,
   Paper,
   Typography,
   Link,
-  Fab
 } from '@mui/material';
 import RegisterForm from '@/components/RegisterForm';
 import LoginForm from '@/components/LoginForm';
 import { AnimatePresence, motion } from 'framer-motion';
-import AddIcon from '@mui/icons-material/Add';
+//import AddIcon from '@mui/icons-material/Add';
 
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
@@ -55,8 +53,6 @@ export default function Home() {
           </Link>
         </Typography>
       </Paper>
-
-      
     </Box>
   );
 }

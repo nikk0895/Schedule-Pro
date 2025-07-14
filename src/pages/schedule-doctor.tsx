@@ -183,25 +183,27 @@ const handleToastClose = () =>
             <Box flex={1}>
               <Typography variant="subtitle2" mb={1}>Select Time Slot</Typography>
               <Box
-                onClick={() => {
-                  setTempSelectedSlot(slot);
-                  setSlotDialogOpen(true);
-                }}
-                sx={{
-                  cursor: 'pointer',
-                  border: '1px solid black',
-                  borderRadius: 1,
-                  px: 2,
-                  py: 1.5,
-                  height: '56px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: slot ? 'text.primary' : 'text.secondary',
-                  '&:hover': { borderColor: 'primary.main' },
-                }}
-              >
-                {slot || 'Choose Time Slot'}
-              </Box>
+  onClick={() => {
+    setTempSelectedSlot(slot);
+    setSlotDialogOpen(true);
+  }}
+  sx={{
+    cursor: 'pointer',
+    border: '1px solid rgba(0, 0, 0, 0.23)',
+    borderRadius: 1,
+    px: 2,
+    py: 1.5,
+    height: '56px',
+    display: 'flex',
+    alignItems: 'center',
+    typography: slot ? 'body1' : 'body2',
+    color: slot ? 'text.primary' : 'text.secondary',
+    '&:hover': { borderColor: 'primary.main' },
+  }}
+>
+  {slot || 'Choose Time Slot'}
+</Box>
+
             </Box>
           </Box>
 
