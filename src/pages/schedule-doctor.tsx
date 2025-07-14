@@ -1,28 +1,49 @@
 import { useEffect, useState } from 'react';
-import {
-  Box, Container, Typography, Avatar, Paper,RadioGroup,
-  FormControlLabel, Radio, Button, Select, MenuItem, InputLabel,
-  FormControl, TextField, Dialog, DialogTitle, DialogContent,
-  DialogActions,Chip
-} from '@mui/material';
-// import Grid from '@mui/material/Unstable_Grid2';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Avatar from '@mui/material/Avatar';
+import Paper from '@mui/material/Paper';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Radio from '@mui/material/Radio';
+import Button from '@mui/material/Button';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import InputLabel from '@mui/material/InputLabel';
+import FormControl from '@mui/material/FormControl';
+import TextField from '@mui/material/TextField';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Chip from '@mui/material/Chip';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from 'dayjs';
 import { useRouter } from 'next/router';
-import AddIcon from '@mui/icons-material/Add';
-import Fab from '@mui/material/Fab';
 import { auth, db } from '@/utils/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import dynamic from 'next/dynamic';
+
+const LocalizationProvider = dynamic(() =>
+  import('@mui/x-date-pickers/LocalizationProvider').then((mod) => mod.LocalizationProvider),
+  { ssr: false }
+);
+
+const DatePicker = dynamic(() =>
+  import('@mui/x-date-pickers/DatePicker').then((mod) => mod.DatePicker),
+  { ssr: false }
+);
+
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-//import { collection, addDoc } from "firebase/firestore";
 
 export default function ScheduleDoctorPage() {
   const router = useRouter();
-  //const [patient, setPatient] = useState<any>(null);
-type Patient = { uid: string; name: string };
-const [patient, setPatient] = useState<Patient | null>(null);
+
+  type Patient = { uid: string; name: string };
+  const [patient, setPatient] = useState<Patient | null>(null);
   const [doctor, setDoctor] = useState<any>(null);
   const [sessionType, setSessionType] = useState('Counselling');
   const [sessionDate, setSessionDate] = useState<Dayjs | null>(dayjs());
@@ -32,31 +53,41 @@ const [patient, setPatient] = useState<Patient | null>(null);
   const [notes, setNotes] = useState('');
   const [slotDialogOpen, setSlotDialogOpen] = useState(false);
   const [tempSelectedSlot, setTempSelectedSlot] = useState('');
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+  open: false,
+  message: '',
+  severity: 'success',
+});
+
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      const uid = user.uid;
-      const docRef = doc(db, 'patients', uid);
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const data = snapshot.data() as { name: string }; // ✅ add this line
-        setPatient({ uid, ...data }); // ✅ now this works
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const uid = user.uid;
+        const docRef = doc(db, 'patients', uid);
+        const snapshot = await getDoc(docRef);
+        if (snapshot.exists()) {
+          const data = snapshot.data() as { name: string };
+          setPatient({ uid, ...data });
+        }
+      } else {
+        router.push('/');
       }
-    } else {
-      router.push('/');
-    }
 
-    // Doctor: from localStorage
-    const doctorData = localStorage.getItem('selectedDoctor');
-    if (doctorData) {
-      setDoctor(JSON.parse(doctorData));
-    }
-  });
+      const doctorData = localStorage.getItem('selectedDoctor');
+      if (doctorData) {
+        setDoctor(JSON.parse(doctorData));
+      }
+    });
 
-  return () => unsubscribe();
-}, [router]);
+    return () => unsubscribe();
+  }, [router]);
 
+  const showToast = (message: string, severity: 'success' | 'error' = 'success') => {
+  setToast({ open: true, message, severity });
+};
+const handleToastClose = () =>
+  setToast((prev) => ({ ...prev, open: false }));
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -69,38 +100,37 @@ const [patient, setPatient] = useState<Patient | null>(null);
 
  const handleConfirm = async () => {
   if (!patient || !doctor || !sessionDate || !slot) {
-    alert('Please complete all fields before confirming.');
+    showToast('Please complete all fields before confirming.', 'error');
     return;
   }
 
   const sessionId = `${Date.now()}`;
- const sessionData = {
-  sessionId,
-  patientUid: patient.uid,
-  patientName: patient.name,
-  doctorName: doctor.name,
-  doctorPhone: doctor.phone,
-  doctorPhoto: doctor.photo,
-  sessionType,
-  sessionDate: sessionDate.format('YYYY-MM-DD'),
-  slot,
-  mode,
-  onlineLink,
-  notes,
-  createdAt: serverTimestamp(),
-  status: 'upcoming',
-};
+  const sessionData = {
+    sessionId,
+    patientUid: patient.uid,
+    patientName: patient.name,
+    doctorName: doctor.name,
+    doctorPhone: doctor.phone,
+    doctorPhoto: doctor.photo,
+    sessionType,
+    sessionDate: sessionDate.format('YYYY-MM-DD'),
+    slot,
+    mode,
+    onlineLink,
+    notes,
+    createdAt: serverTimestamp(),
+    status: 'upcoming',
+  };
 
- try {
-  await setDoc(doc(db, "sessions", sessionId), sessionData); // ✅ write to /sessions/{sessionId}
-  alert('Session booked successfully!');
-  router.push('/dashboard');
-} catch (err) {
-  console.error("Error saving session:", err);
-  alert("Failed to book session. Try again.");
-}
+  try {
+    await setDoc(doc(db, 'sessions', sessionId), sessionData);
+    showToast('Session booked successfully!', 'success');
+    setTimeout(() => router.push('/dashboard'), 1500);
+  } catch (err) {
+    console.error('Error saving session:', err);
+    showToast('Failed to book session. Try again.', 'error');
+  }
 };
-
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -110,14 +140,12 @@ const [patient, setPatient] = useState<Patient | null>(null);
             <Button variant="outlined" color="secondary" onClick={handleLogout}>Logout</Button>
           </Box>
 
-          {/* Patient Info */}
           <Typography variant="h5" mb={2}>Patient</Typography>
           <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar src="/avatar.png" />
             <Typography variant="h6">{patient?.name}</Typography>
           </Paper>
 
-          {/* Doctor Info */}
           <Typography variant="h5" mt={4} mb={2}>Assign Practitioner</Typography>
           <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar src={doctor?.photo} alt={doctor?.name} />
@@ -127,7 +155,6 @@ const [patient, setPatient] = useState<Patient | null>(null);
             </Box>
           </Paper>
 
-          {/* Session Type */}
           <Typography variant="h6" mt={4} mb={1}>Session Type</Typography>
           <FormControl fullWidth sx={{ mb: 3 }}>
             <InputLabel id="session-type-label">Select Session Type</InputLabel>
@@ -142,7 +169,6 @@ const [patient, setPatient] = useState<Patient | null>(null);
             </Select>
           </FormControl>
 
-          {/* Date and Slot Picker */}
           <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} gap={3} mb={3}>
             <Box flex={1}>
               <Typography variant="subtitle2" mb={1}>Session Date</Typography>
@@ -179,7 +205,6 @@ const [patient, setPatient] = useState<Patient | null>(null);
             </Box>
           </Box>
 
-          {/* Mode Radio */}
           <Typography variant="h6" mb={1}>Select Session Mode</Typography>
           <RadioGroup row value={mode} onChange={(e) => setMode(e.target.value as 'online' | 'offline')}>
             <FormControlLabel value="online" control={<Radio />} label="Online" />
@@ -198,7 +223,6 @@ const [patient, setPatient] = useState<Patient | null>(null);
             </Box>
           )}
 
-          {/* Notes */}
           <Typography variant="h6" mt={4} mb={1}>Session Details (Optional)</Typography>
           <TextField
             fullWidth
@@ -209,78 +233,88 @@ const [patient, setPatient] = useState<Patient | null>(null);
             placeholder="Any additional notes..."
           />
 
-          {/* Action Buttons */}
           <Box display="flex" justifyContent="flex-end" gap={2} mt={4}>
             <Button variant="outlined" color="secondary" onClick={handleCancel}>Cancel</Button>
-           <Button
-  variant="contained"
-  onClick={handleConfirm}
-  sx={{
-    background: 'linear-gradient(to right, #f1707d, #b755ff)',
-    color: '#fff',
-    '&:hover': {
-      background: 'linear-gradient(to right, #e85c6d, #a04fe5)',
-    },
-  }}
->
-  Confirm
-</Button>
+            <Button
+              variant="contained"
+              onClick={handleConfirm}
+              sx={{
+                background: 'linear-gradient(to right, #f1707d, #b755ff)',
+                color: '#fff',
+                '&:hover': {
+                  background: 'linear-gradient(to right, #e85c6d, #a04fe5)',
+                },
+              }}
+            >
+              Confirm
+            </Button>
           </Box>
 
-          {/* Time Slot Dialog */}
           <Dialog open={slotDialogOpen} onClose={() => setSlotDialogOpen(false)} maxWidth="sm" fullWidth>
             <DialogTitle>Select a Time Slot</DialogTitle>
             <DialogContent dividers>
               {[
-                { label: 'Morning', slots: ['8:00 AM', '9:00 AM', '10:00 AM','11:00 AM'] },
-                { label: 'Afternoon', slots: ['12:00 PM', '1:00 PM', '2:00 PM' ] },
-                { label: 'Evening', slots: ['4:00 PM', '5:00 PM', '6:00 PM','7:00 PM'] },
+                { label: 'Morning', slots: ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM'] },
+                { label: 'Afternoon', slots: ['12:00 PM', '1:00 PM', '2:00 PM'] },
+                { label: 'Evening', slots: ['4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'] },
               ].map((group, idx) => (
                 <Box key={idx} mb={2}>
                   <Typography variant="subtitle1">{group.label}</Typography>
-                  
-<Box display="flex" flexWrap="wrap" gap={1}>
-  {group.slots.map((time: string) => (
-    <Chip
-      key={time}
-      label={time}
-      clickable
-      sx={{
-        backgroundColor: tempSelectedSlot === time ? '#EDA197' : '#f0f0f0',
-        color: tempSelectedSlot === time ? '#fff' : 'black',
-      }}
-      onClick={() => setTempSelectedSlot(time)}
-    />
-  ))}
-</Box>
-
+                  <Box display="flex" flexWrap="wrap" gap={1}>
+                    {group.slots.map((time: string) => (
+                      <Chip
+                        key={time}
+                        label={time}
+                        clickable
+                        sx={{
+                          backgroundColor: tempSelectedSlot === time ? '#EDA197' : '#f0f0f0',
+                          color: tempSelectedSlot === time ? '#fff' : 'black',
+                        }}
+                        onClick={() => setTempSelectedSlot(time)}
+                      />
+                    ))}
+                  </Box>
                 </Box>
               ))}
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setSlotDialogOpen(false)} color="secondary">Cancel</Button>
               <Button
-  onClick={() => {
-    setSlot(tempSelectedSlot);
-    setSlotDialogOpen(false);
-  }}
-  variant="contained"
-  disabled={!tempSelectedSlot}
-  sx={{
-    background: 'linear-gradient(to right, #f1707d, #b755ff)',
-    color: '#fff',
-    '&:hover': {
-      background: 'linear-gradient(to right, #e85c6d, #a04fe5)',
-    },
-  }}
->
-  Confirm
-</Button>
+                onClick={() => {
+                  setSlot(tempSelectedSlot);
+                  setSlotDialogOpen(false);
+                }}
+                variant="contained"
+                disabled={!tempSelectedSlot}
+                sx={{
+                  background: 'linear-gradient(to right, #f1707d, #b755ff)',
+                  color: '#fff',
+                  '&:hover': {
+                    background: 'linear-gradient(to right, #e85c6d, #a04fe5)',
+                  },
+                }}
+              >
+                Confirm
+              </Button>
             </DialogActions>
           </Dialog>
-        </Container>
-
-        
+         <Snackbar
+  open={toast.open}
+  autoHideDuration={3000}
+  onClose={handleToastClose}
+  anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+>
+  <MuiAlert
+    onClose={handleToastClose}
+    severity={toast.severity}
+    variant="filled"
+    elevation={6}
+    sx={{ width: '100%' }}
+  >
+    {toast.message}
+  </MuiAlert>
+</Snackbar>
+ </Container>
       </Box>
     </LocalizationProvider>
   );
