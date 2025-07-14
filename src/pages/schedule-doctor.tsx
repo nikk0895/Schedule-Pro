@@ -59,29 +59,32 @@ export default function ScheduleDoctorPage() {
   severity: 'success',
 });
 
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const uid = user.uid;
-        const docRef = doc(db, 'patients', uid);
-        const snapshot = await getDoc(docRef);
-        if (snapshot.exists()) {
-          const data = snapshot.data() as { name: string };
-          setPatient({ uid, ...data });
-        }
-      } else {
-        router.push('/');
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const uid = user.uid;
+      const docRef = doc(db, 'patients', uid);
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const data = snapshot.data() as { name: string };
+        const patientData = { uid, ...data };
+        setPatient(patientData);
+        console.log('Patient:', patientData);
       }
+    } else {
+      router.push('/');
+    }
 
-      const doctorData = localStorage.getItem('selectedDoctor');
-      if (doctorData) {
-        setDoctor(JSON.parse(doctorData));
-      }
-    });
+    const doctorData = localStorage.getItem('selectedDoctor');
+    if (doctorData) {
+      const parsedDoctor = JSON.parse(doctorData);
+      setDoctor(parsedDoctor);
+      console.log('Doctor:', parsedDoctor);
+    }
+  });
 
-    return () => unsubscribe();
-  }, [router]);
+  return () => unsubscribe();
+}, [router]);
 
   const showToast = (message: string, severity: 'success' | 'error' = 'success') => {
   setToast({ open: true, message, severity });
@@ -100,6 +103,12 @@ const handleToastClose = () =>
 
  const handleConfirm = async () => {
   if (!patient || !doctor || !sessionDate || !slot) {
+    console.warn('Missing required field(s):', {
+      patient,
+      doctor,
+      sessionDate,
+      slot,
+    });
     showToast('Please complete all fields before confirming.', 'error');
     return;
   }
@@ -122,15 +131,19 @@ const handleToastClose = () =>
     status: 'upcoming',
   };
 
+  console.log('Submitting Session Data:', sessionData);
+
   try {
     await setDoc(doc(db, 'sessions', sessionId), sessionData);
+    console.log(' Session saved successfully with ID:', sessionId);
     showToast('Session booked successfully!', 'success');
     setTimeout(() => router.push('/dashboard'), 1500);
   } catch (err) {
-    console.error('Error saving session:', err);
+    console.error(' Error saving session to Firestore:', err);
     showToast('Failed to book session. Try again.', 'error');
   }
 };
+
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>

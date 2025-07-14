@@ -7,13 +7,12 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Fab,
   Card,
   Paper,
 } from '@mui/material';
 import PhoneIcon from '@mui/icons-material/Phone';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import AddIcon from '@mui/icons-material/Add';
+// import AddIcon from '@mui/icons-material/Add';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '@/utils/firebase';
@@ -63,6 +62,7 @@ export default function Dashboard() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const uid = user.uid;
+         console.log(' Authenticated UID:', uid);
         try {
           const patientRef = doc(db, 'patients', uid);
           const [patientSnap, sessionsSnap] = await Promise.all([
@@ -78,8 +78,10 @@ export default function Dashboard() {
 
           if (patientSnap.exists()) {
             const patientData = patientSnap.data();
+            console.log(' Patient Data:', patientData);
             setPatient({ uid, ...patientData });
           } else {
+            console.warn('❗ No patient data found');
             setPatient({ uid, name: 'Unknown' });
           }
 
@@ -99,6 +101,7 @@ export default function Dashboard() {
               doctorPhoto: d.doctorPhoto ?? '',
             };
           });
+          console.log(' Sessions Retrieved:', data);
           setSessions(data);
         } catch (error) {
           console.error('Failed to fetch patient or sessions:', error);
@@ -106,6 +109,7 @@ export default function Dashboard() {
           setLoading(false);
         }
       } else {
+        console.warn('❗ User not authenticated');
         router.push('/');
       }
     });
@@ -113,11 +117,13 @@ export default function Dashboard() {
   }, [router]);
 
   const handleLogout = async () => {
+    console.log('Logging out user:', patient?.uid);
     await signOut(auth);
     router.push('/');
   };
 
   const markAsCompleted = async (id: string) => {
+    console.log('Marking session as completed:', id);
     try {
       await updateDoc(doc(db, 'sessions', id), { status: 'completed' });
       setSessions((prev) =>

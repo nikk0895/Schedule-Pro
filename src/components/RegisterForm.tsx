@@ -1,4 +1,3 @@
-// src/components/RegisterForm.tsx
 import { useState } from 'react';
 import {
   TextField,
@@ -13,10 +12,10 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/utils/firebase';
 import { registerSchema } from '@/types/formSchemas';
+
 type RegisterFormProps = {
   onRegistered: () => void;
 };
-
 
 export default function RegisterForm({ onRegistered }: RegisterFormProps) {
   const router = useRouter();
@@ -32,7 +31,7 @@ export default function RegisterForm({ onRegistered }: RegisterFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // ✅ Required to prevent form from reloading the page
+    e.preventDefault();
     setErrors({});
     const lowerEmail = email.toLowerCase();
 
@@ -45,6 +44,8 @@ export default function RegisterForm({ onRegistered }: RegisterFormProps) {
       password,
     };
 
+    console.log(' Attempting to register with:', formData);
+
     const result = registerSchema.safeParse(formData);
 
     if (!result.success) {
@@ -55,6 +56,7 @@ export default function RegisterForm({ onRegistered }: RegisterFormProps) {
           formErrors[field] = issue.message;
         }
       });
+      console.warn('⚠️ Form validation failed:', formErrors);
       setErrors(formErrors);
       enqueueSnackbar('Please fix the errors above', { variant: 'error' });
       return;
@@ -63,6 +65,7 @@ export default function RegisterForm({ onRegistered }: RegisterFormProps) {
     try {
       const userCred = await createUserWithEmailAndPassword(auth, lowerEmail, password);
       const uid = userCred.user.uid;
+      console.log(' Firebase Auth Success. UID:', uid);
 
       const patientRef = doc(db, 'patients', uid);
       await setDoc(patientRef, {
@@ -75,10 +78,13 @@ export default function RegisterForm({ onRegistered }: RegisterFormProps) {
         createdAt: new Date().toISOString(),
       });
 
+      console.log(' Patient profile saved in Firestore');
       enqueueSnackbar('Registration successful! Redirecting to dashboard...', { variant: 'success' });
+
       router.push('/dashboard');
-       onRegistered();
+      onRegistered();
     } catch (err: any) {
+      console.error(' Registration Error:', err);
       enqueueSnackbar(err.message || 'Registration failed', { variant: 'error' });
     }
   };

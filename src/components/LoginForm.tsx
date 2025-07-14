@@ -1,5 +1,3 @@
-// ✅ Fixed LoginForm.tsx with proper form structure
-
 import { useState } from 'react';
 import {
   TextField,
@@ -24,9 +22,11 @@ export default function LoginForm() {
   const [loginFailed, setLoginFailed] = useState(false);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // ✅ Prevent default form submit
+    e.preventDefault();
     setErrors({});
     setLoginFailed(false);
+
+    console.log(' Attempting login with:', { email, password });
 
     const result = loginSchema.safeParse({ email, password });
 
@@ -38,6 +38,7 @@ export default function LoginForm() {
           formErrors[field] = issue.message;
         }
       });
+      console.warn('⚠️ Form validation failed:', formErrors);
       setErrors(formErrors);
       enqueueSnackbar('Please fix the errors above', { variant: 'error' });
       return;
@@ -46,20 +47,26 @@ export default function LoginForm() {
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       const uid = userCred.user.uid;
+      console.log(' Firebase Auth Success. UID:', uid);
 
       const docRef = doc(db, 'patients', uid);
       const snapshot = await getDoc(docRef);
 
       if (snapshot.exists()) {
+        const patientData = snapshot.data();
+        console.log('📄 Patient data found:', patientData);
+
         enqueueSnackbar('Login successful!', { variant: 'success' });
         router.push({
           pathname: '/dashboard',
           query: { uid },
         });
       } else {
+        console.warn(' Patient record not found in Firestore for UID:', uid);
         enqueueSnackbar('Patient record not found. Please register again.', { variant: 'error' });
       }
     } catch (err: any) {
+      console.error(' Firebase Auth Error:', err);
       setLoginFailed(true);
       enqueueSnackbar(err.message || 'Login failed', { variant: 'error' });
     }
