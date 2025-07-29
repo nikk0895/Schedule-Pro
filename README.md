@@ -9,6 +9,11 @@ SchedulePro is a modern and responsive patient-doctor session scheduling applica
 🔗 **Access Live:** [https://schedulepro.vercel.app](https://schedulepro.vercel.app)
 
 ---
+## 🚀 Figma Design
+
+🔗  (https://www.figma.com/design/9rXDHVD1na0Smz16eKDEnL/Frontend-Test?node-id=169-62&t=PyzGrEDGOO4QOGzj-0)
+
+---
 
 ## 🛠️ Tech Stack
 
